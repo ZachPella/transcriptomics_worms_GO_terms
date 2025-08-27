@@ -52,7 +52,7 @@ graph TD
 ### 1. Quality Trimming (`1_fastp.sh`)
 **Purpose:** Remove low-quality sequences and adapters
 - **Tool:** fastp
-- **Resources:** 8 CPUs, 30G RAM, 6 hours
+- **Resources:** 8 CPUs, 30G RAM, few minutes
 - **Output:** Trimmed FASTQ files and QC reports
 
 ```bash
@@ -62,7 +62,7 @@ sbatch scripts/1_fastp.sh
 ### 2. Quality Control (`2_fastqc.sh`)
 **Purpose:** Generate quality control metrics
 - **Tool:** FastQC
-- **Resources:** 4 CPUs, 25G RAM, 6 hours
+- **Resources:** 4 CPUs, 25G RAM, few minutes
 - **Output:** HTML QC reports
 
 ```bash
@@ -72,7 +72,7 @@ sbatch scripts/2_fastqc.sh
 ### 3. Host Genome Alignment (`3_sam.sh`)
 **Purpose:** Align reads to *N. americanus* reference genome
 - **Tool:** BWA-MEM
-- **Resources:** 8 CPUs, 45G RAM, 6 days
+- **Resources:** 8 CPUs, 45G RAM, 4 hours
 - **Output:** SAM alignment file
 
 ```bash
@@ -82,7 +82,7 @@ sbatch scripts/3_sam.sh
 ### 4. SAM to BAM Conversion (`4_bam.sh`)
 **Purpose:** Convert and sort alignments, generate statistics
 - **Tool:** samtools
-- **Resources:** 4 CPUs, 50G RAM, 4 days
+- **Resources:** 4 CPUs, 50G RAM, few minutes
 - **Output:** Sorted BAM files and alignment statistics
 
 ```bash
@@ -92,7 +92,7 @@ sbatch scripts/4_bam.sh
 ### 5. Extract Unmapped Reads (`5_unmapped_only.sh`)
 **Purpose:** Extract reads that didn't align to host genome (potential microbial sequences)
 - **Tool:** samtools
-- **Resources:** 1 CPU, 15G RAM, 2 hours
+- **Resources:** 1 CPU, 15G RAM, few minutes
 - **Output:** Unmapped FASTQ files for assembly
 
 ```bash
@@ -101,7 +101,7 @@ sbatch scripts/5_unmapped_only.sh
 
 ### 5b. Generate Summary Statistics (`5b_summary.sh`)
 **Purpose:** Compile comprehensive pipeline statistics
-- **Resources:** 1 CPU, 10G RAM, 1 hour
+- **Resources:** 1 CPU, 10G RAM, few minutes
 - **Output:** Summary CSV, TSV, and detailed report
 
 ```bash
@@ -111,7 +111,7 @@ sbatch scripts/5b_summary.sh
 ### 6. De novo Assembly (`6_contigs.sh`)
 **Purpose:** Assemble unmapped reads into contigs
 - **Tool:** MEGAHIT
-- **Resources:** 8 CPUs, 32G RAM, 12 hours
+- **Resources:** 8 CPUs, 32G RAM, few minutes
 - **Output:** Assembled contigs in FASTA format
 
 ```bash
@@ -121,7 +121,7 @@ sbatch scripts/6_contigs.sh
 ### 7. Taxonomic Classification (`7_kraken_bracken.sh`)
 **Purpose:** Classify assembled contigs taxonomically
 - **Tools:** Kraken2 + Bracken
-- **Resources:** 8 CPUs, 50G RAM, 15 hours
+- **Resources:** 8 CPUs, 50G RAM, few minutes
 - **Output:** Taxonomic reports at genus and species levels
 
 ```bash
@@ -131,7 +131,7 @@ sbatch scripts/7_kraken_bracken.sh
 ### 8. Gene Annotation (`8_prokka_annotation.sh`)
 **Purpose:** Annotate genes in assembled contigs
 - **Tool:** Prokka
-- **Resources:** 8 CPUs, 32G RAM, 12 hours
+- **Resources:** 8 CPUs, 32G RAM, few minutes
 - **Output:** GFF files with gene annotations
 
 ```bash
@@ -141,7 +141,7 @@ sbatch scripts/8_prokka_annotation.sh
 ### 9. Functional Annotation (`9_interproscan.sh`)
 **Purpose:** Generate detailed functional annotations and GO terms
 - **Tool:** InterProScan
-- **Resources:** 6 CPUs, 20G RAM, 24 hours
+- **Resources:** 6 CPUs, 20G RAM, few minutes
 - **Output:** TSV file with GO terms and functional domains
 
 ```bash
