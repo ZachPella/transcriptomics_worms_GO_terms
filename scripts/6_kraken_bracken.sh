@@ -2,14 +2,14 @@
 #SBATCH --job-name=kraken2_bracken_unmapped_reads_bacteria_filter
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
-#SBATCH --mem=30G
+#SBATCH --mem=60G
 #SBATCH --time=15:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --partition=batch
 
 ##
-## This script performs Kraken2 and Bracken taxonomic classification on unmapped reads,
-## followed by a filtering step using an external Python script.
+## This script performs Kraken2 and Bracken taxonomic classification,
+## filters for bacterial reads, and generates abundance reports.
 ##
 
 # Set up directories and variables
@@ -18,11 +18,13 @@ UNMAPPED_FASTQ_DIR="${PROJECT_ROOT}/unmapped_fastq"
 KRAKEN2_OUTPUT_DIR="${PROJECT_ROOT}/kraken2_output_unmapped_reads"
 BRACKEN_OUTPUT_DIR="${PROJECT_ROOT}/bracken_output_unmapped_reads"
 FILTERED_OUTPUT_DIR="${PROJECT_ROOT}/bracken_bacteria_filtered"
+BACTERIAL_READS_DIR="${PROJECT_ROOT}/bacterial_reads_for_interproscan"
 
 # Create all necessary output directories
 mkdir -p "${KRAKEN2_OUTPUT_DIR}"
 mkdir -p "${BRACKEN_OUTPUT_DIR}"
 mkdir -p "${FILTERED_OUTPUT_DIR}"
+mkdir -p "${BACTERIAL_READS_DIR}"
 
 ## Sample information
 SAMPLE="NaL3_surfster_mRNA"
@@ -48,9 +50,8 @@ module purge
 module load kraken2/2.0.8-beta
 module load bracken
 
-##
-## STEP 1: Run Kraken2 taxonomic classification on the reads
-##
+
+## **STEP 1: Run Kraken2 taxonomic classification on the reads** 🏃‍♀️
 echo "Running Kraken2 taxonomic classification for ${SAMPLE} on unmapped reads..."
 kraken2 --db $KRAKEN2_DB \
     --threads "${SLURM_CPUS_PER_TASK}" \
@@ -60,15 +61,45 @@ kraken2 --db $KRAKEN2_DB \
 
 ## Check if Kraken2 completed successfully
 if [ ! -s "${KRAKEN2_REPORT}" ]; then
-    echo "✗ Error: Kraken2 report not found or empty for ${SAMPLE}. Skipping Bracken and filtering."
+    echo "✗ Error: Kraken2 report not found or empty for ${SAMPLE}. Skipping next steps."
     exit 1
 fi
 
 echo "✓ Kraken2 classification completed successfully."
 
-##
-## STEP 2: Run Bracken for abundance estimation at Genus and Species levels
-##
+
+## **STEP 2: Extract bacterial reads for InterProScan** 🧬
+## **STEP 2: Extract bacterial reads for InterProScan** 🧬
+echo "Extracting bacterial reads for InterProScan..."
+BACTERIAL_R1="${BACTERIAL_READS_DIR}/${SAMPLE}.bacterial.R1.fastq.gz"
+BACTERIAL_R2="${BACTERIAL_READS_DIR}/${SAMPLE}.bacterial.R2.fastq.gz"
+
+# Use --fastq-output flag and add --report flag (required for --include-children)
+/work/fauverlab/zachpella/namer_surface_ster_L3_pool_mRNA_transcript_data/scripts/extract_kraken_reads.py \
+    -k "${KRAKEN2_OUTPUT}" \
+    -s1 "${INPUT_R1}" \
+    -s2 "${INPUT_R2}" \
+    -o "${BACTERIAL_R1%.gz}" \
+    -o2 "${BACTERIAL_R2%.gz}" \
+    --taxid 2 \
+    --include-children \
+    --report "${KRAKEN2_REPORT}" \
+    --fastq-output
+
+# Check if files were created before compressing
+if [ -f "${BACTERIAL_R1%.gz}" ] && [ -f "${BACTERIAL_R2%.gz}" ]; then
+    gzip "${BACTERIAL_R1%.gz}"
+    gzip "${BACTERIAL_R2%.gz}"
+    echo "✓ Bacterial reads extracted and saved to ${BACTERIAL_READS_DIR}/ as gzipped files."
+else
+    echo "✗ Error: Bacterial read extraction failed. Files not created."
+    exit 1
+fi
+
+
+
+## **STEP 3: Run Bracken for abundance estimation at Genus and Species levels** 📊
+# This is for creating abundance reports, which is a separate goal from the read filtering above.
 echo "Running Bracken abundance estimation for ${SAMPLE} at Genus and Species levels..."
 
 LEVEL_G="G"
@@ -89,19 +120,16 @@ bracken -d $KRAKEN2_DB \
 
 echo "✓ Bracken abundance estimation completed at Genus and Species levels."
 
-##
-## STEP 3: Filter Bracken reports for bacteria only using a Python script
-##
+
+## **STEP 4: Filter Bracken reports for bacteria only using a Python script** 🧹
 echo "Filtering Bracken reports for bacteria, then excluding specific IDs using Python script..."
+# (This step is already correct as you provided it, and is for report-level filtering only)
+# ... (rest of the script for report filtering and summary statistics)
 
 # Define the path to the filter_bracken_out.py script
-# IMPORTANT: You must ensure this script is accessible at this path.
 FILTER_BRACKEN_SCRIPT="/work/fauverlab/zachpella/braker_run/microbiome_full_pipeline/namer_surface_ster_f14_for_nri_raw_illumina_data/scripts/filter_bracken_out.py"
-
 # Define the NCBI Taxonomy IDs to exclude
-# Added Homo sapiens (9606) to the list
-EXCLUDE_IDS="2759 9605 10239 2157 9606"
-
+EXCLUDE_IDS="2759 9605 10239 2157 9606 1299306 "
 # Define the output filenames for the filtered reports
 FILTERED_G_OUTPUT="${FILTERED_OUTPUT_DIR}/${SAMPLE}.bracken_unmapped_reads.G.bacteria_only.output"
 FILTERED_S_OUTPUT="${FILTERED_OUTPUT_DIR}/${SAMPLE}.bracken_unmapped_reads.S.bacteria_only.output"
